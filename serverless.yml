@@ -1,0 +1,81 @@
+# NOTE: update this with your service name
+service: forum-communication
+
+# Use the serverless-webpack plugin to transpile ES6
+plugins:
+  - serverless-pseudo-parameters
+  - serverless-iam-roles-per-function
+  - serverless-plugin-tracing
+  - serverless-webpack
+  - serverless-dynamodb-autoscaling      
+  - serverless-offline
+
+# serverless-webpack configuration
+# Enable auto-packing of external modules
+custom:
+  webpack:
+    webpackConfig: ./webpack.config.js
+    includeModules: true
+  advertisementsTableName: forum-comm-${self:provider.stage}-advertisements
+  advertisementsTableArn: # ARNs are addresses of deployed services in AWS space
+    Fn::Join:
+    - ":"
+    - - arn
+      - aws
+      - dynamodb
+      - Ref: AWS::Region
+      - Ref: AWS::AccountId
+      - table/${self:custom.advertisementsTableName
+  capacities:
+    - table: advertisementsTableName
+      read:
+        minimum: 1        # Minimum read capacity 
+        maximum: 50       # Maximum read capacity 
+        usage: 0.75       # Targeted usage percentage       
+
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+  memorySize: 128
+  stage: dev
+  region: us-east-1
+  tracing: true # enable tracing
+
+  environment:
+    ADVERTISEMENTS_TABLE_NAME: ${self:custom.advertisementsTableName}    
+
+functions:
+  get:
+    handler: frontend_api/functions/get.main
+    events:
+      - http:
+          path: advertisement
+          method: get
+    iamRoleStatements:
+      - Effect: Allow
+        Action: 
+          - dynamodb:GetItem
+        Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.advertisementsTableName}     
+      - Effect: "Allow" # xray permissions (required)
+        Action:
+          - "xray:PutTraceSegments"
+          - "xray:PutTelemetryRecords"
+        Resource:
+          - "*"                
+        
+resources:
+  Resources:
+    advertisementsTableName:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.advertisementsTableName}
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH                      
