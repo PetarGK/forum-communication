@@ -78,15 +78,9 @@ provider:
   memorySize: 128
   stage: dev
   region: us-east-1
-  tracing: true # enable tracing
-
+  tracing: true 
   environment:
-    ADVERTISEMENTS_TABLE_NAME: ${self:custom.advertisementsTableName} 
-    FEED2_ARN: ${self:custom.feed2Arn}   
-    FEED3_ARN: ${self:custom.feed3Arn}   
-    READDB_ARN: ${self:custom.readDbArn}
-    UPDATE_CONFIG_ARN: ${self:custom.updateConfigArn}
-    METADATA_BUCKET: ${self:custom.metadataBucketName}
+    ADVERTISEMENTS_TABLE_NAME: ${self:custom.advertisementsTableName}    
 
 functions:
   get:
@@ -111,6 +105,8 @@ functions:
     handler: background_worker/functions/feed1.main
     events:
       - schedule: rate(1 hour)
+    environment: 
+      FEED2_ARN: ${self:custom.feed2Arn}
     iamRoleStatements:
       - Effect: Allow
         Action: 
@@ -127,6 +123,8 @@ functions:
     handler: background_worker/functions/feed2.main
     events:
       - sns: feed2
+    environment: 
+      FEED3_ARN: ${self:custom.feed3Arn}    
     iamRoleStatements:   
       - Effect: Allow
         Action: 
@@ -143,6 +141,8 @@ functions:
     handler: background_worker/functions/feed3.main
     events:
       - sns: feed3
+    environment: 
+      READDB_ARN: ${self:custom.readDbArn}       
     iamRoleStatements:   
       - Effect: Allow
         Action: 
@@ -159,6 +159,8 @@ functions:
     handler: background_worker/functions/readDb.main
     events:
       - sns: readDb
+    environment: 
+      UPDATE_CONFIG_ARN: ${self:custom.updateConfigArn}     
     iamRoleStatements:   
       - Effect: Allow
         Action: 
@@ -175,6 +177,8 @@ functions:
     handler: background_worker/functions/updateConfig.main
     events:
       - sns: updateConfig
+    environment: 
+      METADATA_BUCKET: ${self:custom.metadataBucketName}    
     iamRoleStatements:     
       - Effect: "Allow" 
         Action:
