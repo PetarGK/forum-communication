@@ -17,7 +17,8 @@ custom:
     webpackConfig: ./webpack.config.js
     includeModules: true
   advertisementsTableName: forum-comm-${self:provider.stage}-advertisements
-  advertisementsTableArn: # ARNs are addresses of deployed services in AWS space
+  metadataBucketName: forum-comm-${self:provider.stage}-metadata
+  advertisementsTableArn: 
     Fn::Join:
     - ":"
     - - arn
@@ -25,7 +26,44 @@ custom:
       - dynamodb
       - Ref: AWS::Region
       - Ref: AWS::AccountId
-      - table/${self:custom.advertisementsTableName
+      - table/${self:custom.advertisementsTableName}
+  feed2Arn:
+    Fn::Join:
+      - ":"
+      - - arn
+        - aws
+        - sns
+        - Ref: AWS::Region
+        - Ref: AWS::AccountId
+        - feed2  
+  feed3Arn:
+    Fn::Join:
+      - ":"
+      - - arn
+        - aws
+        - sns
+        - Ref: AWS::Region
+        - Ref: AWS::AccountId
+        - feed3   
+  readDbArn:
+    Fn::Join:
+      - ":"
+      - - arn
+        - aws
+        - sns
+        - Ref: AWS::Region
+        - Ref: AWS::AccountId
+        - readDb  
+  updateConfigArn:
+    Fn::Join:
+      - ":"
+      - - arn
+        - aws
+        - sns
+        - Ref: AWS::Region
+        - Ref: AWS::AccountId
+        - updateConfig                         
+        
   capacities:
     - table: advertisementsTableName
       read:
@@ -43,7 +81,12 @@ provider:
   tracing: true # enable tracing
 
   environment:
-    ADVERTISEMENTS_TABLE_NAME: ${self:custom.advertisementsTableName}    
+    ADVERTISEMENTS_TABLE_NAME: ${self:custom.advertisementsTableName} 
+    FEED2_ARN: ${self:custom.feed2Arn}   
+    FEED3_ARN: ${self:custom.feed3Arn}   
+    READDB_ARN: ${self:custom.readDbArn}
+    UPDATE_CONFIG_ARN: ${self:custom.updateConfigArn}
+    METADATA_BUCKET: ${self:custom.metadataBucketName}
 
 functions:
   get:
@@ -56,13 +99,98 @@ functions:
       - Effect: Allow
         Action: 
           - dynamodb:GetItem
-        Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/${self:custom.advertisementsTableName}     
-      - Effect: "Allow" # xray permissions (required)
+        Resource: ${self:custom.advertisementsTableArn}     
+      - Effect: "Allow" 
         Action:
           - "xray:PutTraceSegments"
           - "xray:PutTelemetryRecords"
         Resource:
-          - "*"                
+          - "*"     
+          
+  feed1:
+    handler: background_worker/functions/feed1.main
+    events:
+      - schedule: rate(1 hour)
+    iamRoleStatements:
+      - Effect: Allow
+        Action: 
+          - "sns:Publish"
+        Resource: ${self:custom.feed2Arn}     
+      - Effect: "Allow" 
+        Action:
+          - "xray:PutTraceSegments"
+          - "xray:PutTelemetryRecords"
+        Resource:
+          - "*"     
+          
+  feed2:
+    handler: background_worker/functions/feed2.main
+    events:
+      - sns: feed2
+    iamRoleStatements:   
+      - Effect: Allow
+        Action: 
+          - "sns:Publish"
+        Resource: ${self:custom.feed3Arn}        
+      - Effect: "Allow" 
+        Action:
+          - "xray:PutTraceSegments"
+          - "xray:PutTelemetryRecords"
+        Resource:
+          - "*"       
+          
+  feed3:
+    handler: background_worker/functions/feed3.main
+    events:
+      - sns: feed3
+    iamRoleStatements:   
+      - Effect: Allow
+        Action: 
+          - "sns:Publish"
+        Resource: ${self:custom.readDbArn}        
+      - Effect: "Allow" 
+        Action:
+          - "xray:PutTraceSegments"
+          - "xray:PutTelemetryRecords"
+        Resource:
+          - "*"    
+          
+  readDb:
+    handler: background_worker/functions/readDb.main
+    events:
+      - sns: readDb
+    iamRoleStatements:   
+      - Effect: Allow
+        Action: 
+          - "sns:Publish"
+        Resource: ${self:custom.updateConfigArn}        
+      - Effect: "Allow" 
+        Action:
+          - "xray:PutTraceSegments"
+          - "xray:PutTelemetryRecords"
+        Resource:
+          - "*"        
+          
+  updateConfig:
+    handler: background_worker/functions/updateConfig.main
+    events:
+      - sns: updateConfig
+    iamRoleStatements:     
+      - Effect: "Allow" 
+        Action:
+          - "s3:PutObject"
+        Resource:
+          Fn::Join:
+            - ""
+            - - "arn:aws:s3:::"
+              - Ref: metadataBucketName
+              - "/*"        
+      - Effect: "Allow" 
+        Action:
+          - "xray:PutTraceSegments"
+          - "xray:PutTelemetryRecords"
+        Resource:
+          - "*"            
         
 resources:
   Resources:
@@ -78,4 +206,9 @@ resources:
             AttributeType: S
         KeySchema:
           - AttributeName: id
-            KeyType: HASH                      
+            KeyType: HASH   
+    metadataBucketName:
+      Type: AWS::S3::Bucket
+      Properties:
+        AccessControl: Private
+        BucketName: ${self:custom.metadataBucketName}            
