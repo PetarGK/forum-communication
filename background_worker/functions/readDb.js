@@ -11,9 +11,10 @@ export async function main(event, context, callback) {
 
         var params = {
             Item: {
-             "id":  "1", 
+             "id":  "2", 
              "name":  "Petar", 
-             "description": "Korudzhiev"
+             "description": "Korudzhiev",
+             "expire": Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 1 // expire after 1 day 
             }, 
             TableName: process.env.ADVERTISEMENTS_TABLE_NAME
         };

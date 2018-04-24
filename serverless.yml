@@ -221,7 +221,10 @@ resources:
             AttributeType: S
         KeySchema:
           - AttributeName: id
-            KeyType: HASH   
+            KeyType: HASH  
+        TimeToLiveSpecification: 
+          AttributeName: expire
+          Enabled: true          
     metadataBucketName:
       Type: AWS::S3::Bucket
       Properties:
