@@ -104,7 +104,9 @@ functions:
   feed1:
     handler: background_worker/functions/feed1.main
     events:
-      - schedule: rate(1 hour)
+      - schedule: 
+          rate: rate(1 hour)
+          enabled: false
     environment: 
       FEED2_ARN: ${self:custom.feed2Arn}
     iamRoleStatements:
@@ -157,6 +159,11 @@ functions:
           
   readDb:
     handler: background_worker/functions/readDb.main
+    vpc:
+      securityGroupIds:
+        - sg-ad8fa4da
+      subnetIds:
+        - subnet-036ec649  
     events:
       - sns: readDb
     environment: 
@@ -165,7 +172,11 @@ functions:
       - Effect: Allow
         Action: 
           - "sns:Publish"
-        Resource: ${self:custom.updateConfigArn}        
+        Resource: ${self:custom.updateConfigArn}   
+      - Effect: Allow
+        Action: 
+          - dynamodb:PutItem
+        Resource: ${self:custom.advertisementsTableArn}               
       - Effect: "Allow" 
         Action:
           - "xray:PutTraceSegments"
