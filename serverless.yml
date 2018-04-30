@@ -97,7 +97,7 @@ functions:
     handler: frontend_api/functions/get.main
     events:
       - http:
-          path: advertisement
+          path: advertisements
           method: get
     iamRoleStatements:
       - Effect: Allow
