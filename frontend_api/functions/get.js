@@ -1,13 +1,19 @@
 import * as dynamoDbLib from '../../libs/dynamodb-lib'
 import { success, failure } from '../../libs/response-lib'
+import log from '../../libs/log' 
+import middy from 'middy'
+import sampleLogging from '../../middlewares/sample-logging'
+import { builtinModules } from 'module';
 
 const defaultRows = 3;
 
-export async function main(event, context, callback) {
+const main = middy(async (event, context, callback) => {
   let adsRows = defaultRows;
   if(event.queryStringParameters && event.queryStringParameters.hasOwnProperty('adsRows')){
     adsRows = event["queryStringParameters"]['adsRows']
   }
+
+  log.debug(`Number of ads requested ${adsRows}`)
 
   const adsCount = 4; // get from config
 
@@ -51,4 +57,8 @@ export async function main(event, context, callback) {
     console.log(e);
     callback(null, failure({ status: false }));
   }
-}
+})
+
+main.use(sampleLogging({ sampleRate: 0.01 }));
+
+module.exports = { main }

@@ -79,7 +79,11 @@ custom:
       forum-comm:
         sources:
           - table: ${self:custom.advertisementsTableName}
-            sources: [./frontend_api/seed/advertisements.json]                
+            sources: [./frontend_api/seed/advertisements.json]      
+  stage: ${opt:stage, self:provider.stage}
+  logLevel:
+    prod: INFO
+    default: DEBUG                      
 
 
 provider:
@@ -91,10 +95,12 @@ provider:
   tracing: true 
   environment:
     ADVERTISEMENTS_TABLE_NAME: ${self:custom.advertisementsTableName}    
+    log_level: ${self:custom.logLevel.${self:custom.stage}, self:custom.logLevel.default}    
 
 functions:
   get:
     handler: frontend_api/functions/get.main
+    memorySize: 256
     events:
       - http:
           path: advertisements
