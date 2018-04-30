@@ -24,6 +24,7 @@
     "jest": "^21.2.1",
     "serverless": "^1.26.1",
     "serverless-dynamodb-autoscaling": "^0.6.2",
+    "serverless-dynamodb-local": "^0.2.30",
     "serverless-iam-roles-per-function": "^0.1.5",
     "serverless-offline": "^3.18.0",
     "serverless-plugin-tracing": "^2.0.0",
